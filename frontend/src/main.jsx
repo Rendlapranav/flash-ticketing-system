@@ -1,0 +1,27 @@
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { ClerkProvider } from '@clerk/clerk-react';
+import App from './App.jsx';
+import './index.css';
+
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error(
+    'Missing VITE_CLERK_PUBLISHABLE_KEY — add it to frontend/.env\n' +
+    'Get your key from https://dashboard.clerk.com → API Keys'
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <ClerkProvider
+      publishableKey={PUBLISHABLE_KEY}
+      appearance={{
+        variables: { colorPrimary: '#8b5cf6' },
+      }}
+    >
+      <App />
+    </ClerkProvider>
+  </StrictMode>
+);
