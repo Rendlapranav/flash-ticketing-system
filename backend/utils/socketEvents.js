@@ -4,18 +4,32 @@ function setSocketServer(io) {
   ioServer = io;
 }
 
-function broadcastSeatUpdate(seatNumber, status) {
+function eventRoom(eventId) {
+  return `event:${eventId}`;
+}
+
+function broadcastSeatUpdate(eventId, seatNumber, status) {
   if (!ioServer) {
     return;
   }
 
-  ioServer.emit('seat:status-changed', {
+  ioServer.to(eventRoom(eventId)).emit('seat:status-changed', {
     seatNumber,
     status,
   });
 }
 
+function broadcastAdminUpdate() {
+  if (!ioServer) {
+    return;
+  }
+
+  ioServer.to('admin-room').emit('admin:booking-changed');
+}
+
 module.exports = {
+  broadcastAdminUpdate,
   broadcastSeatUpdate,
+  eventRoom,
   setSocketServer,
 };

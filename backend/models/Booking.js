@@ -5,6 +5,11 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  eventId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Event',
+    required: true,
+  },
   seatNumbers: {
     type: [String],
     required: true,
@@ -13,11 +18,26 @@ const bookingSchema = new mongoose.Schema({
       message: 'A booking must contain at least one seat.',
     },
   },
+  totalAmount: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
   paymentStatus: {
     type: String,
     enum: ['completed'],
     default: 'completed',
     required: true,
+  },
+  status: {
+    type: String,
+    enum: ['confirmed', 'cancelled'],
+    default: 'confirmed',
+    required: true,
+  },
+  cancelledAt: {
+    type: Date,
+    default: null,
   },
   createdAt: {
     type: Date,

@@ -1,14 +1,32 @@
 import { useMemo } from 'react';
-
-const ROWS = 'ABCDEFGHIJ'.split('');
-const COLS = Array.from({ length: 10 }, (_, i) => i + 1);
+import { tierStyleFor } from '../lib/theme';
 
 // ─── Seat Grid ──────────────────────────────────────────────
-export default function SeatGrid({ seats, selectedSeat, userId, onSeatClick, loading }) {
+export default function SeatGrid({
+  seats,
+  rows,
+  cols,
+  cartSeatNumbers,
+  userId,
+  onSeatClick,
+  loading,
+}) {
   const seatMap = useMemo(() => {
     const map = {};
-    seats.forEach((s) => { map[s.seatNumber] = s; });
+    seats.forEach((s) => {
+      map[s.seatNumber] = s;
+    });
     return map;
+  }, [seats]);
+
+  const colNumbers = useMemo(() => Array.from({ length: cols }, (_, i) => i + 1), [cols]);
+
+  const tiersInUse = useMemo(() => {
+    const seen = new Map();
+    seats.forEach((s) => {
+      if (!seen.has(s.tier)) seen.set(s.tier, s.price);
+    });
+    return [...seen.entries()];
   }, [seats]);
 
   if (loading) {
@@ -32,13 +50,13 @@ export default function SeatGrid({ seats, selectedSeat, userId, onSeatClick, loa
       </div>
 
       {/* ── Grid ── */}
-      <div className="flex flex-col gap-[5px] sm:gap-[7px]">
+      <div className="flex flex-col gap-[5px] sm:gap-[7px] overflow-x-auto max-w-full px-2">
         {/* Column headers */}
         <div className="flex items-center gap-[5px] sm:gap-[7px] pl-7 sm:pl-9">
-          {COLS.map((col) => (
+          {colNumbers.map((col) => (
             <div
               key={col}
-              className="w-[30px] h-5 sm:w-[38px] sm:h-6 flex items-center justify-center text-[10px] sm:text-xs text-gray-600 font-medium select-none"
+              className="w-[30px] h-5 sm:w-[38px] sm:h-6 flex items-center justify-center text-[10px] sm:text-xs text-gray-600 font-medium select-none shrink-0"
             >
               {col}
             </div>
@@ -46,24 +64,25 @@ export default function SeatGrid({ seats, selectedSeat, userId, onSeatClick, loa
         </div>
 
         {/* Seat rows */}
-        {ROWS.map((row) => (
+        {rows.map((row) => (
           <div key={row} className="flex items-center gap-[5px] sm:gap-[7px]">
-            <span className="w-5 sm:w-7 text-right text-[11px] sm:text-xs text-gray-600 font-medium select-none">
+            <span className="w-5 sm:w-7 text-right text-[11px] sm:text-xs text-gray-600 font-medium select-none shrink-0">
               {row}
             </span>
-            {COLS.map((col) => {
+            {colNumbers.map((col) => {
               const seatNumber = `${row}${col}`;
               const seat = seatMap[seatNumber];
               const status = seat?.status || 'available';
-              const isSelected = seatNumber === selectedSeat;
-              const isMine = seat?.lockedBy === userId;
+              const isInCart = cartSeatNumbers.has(seatNumber);
+              const isMine = seat?.bookedBy === userId;
 
               return (
                 <SeatButton
                   key={seatNumber}
                   seatNumber={seatNumber}
                   status={status}
-                  isSelected={isSelected}
+                  tier={seat?.tier}
+                  isInCart={isInCart}
                   isMine={isMine}
                   onClick={() => onSeatClick(seatNumber)}
                 />
@@ -75,46 +94,46 @@ export default function SeatGrid({ seats, selectedSeat, userId, onSeatClick, loa
 
       {/* ── Legend ── */}
       <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-2">
-        <LegendItem color="bg-emerald-500/50" label="Available" />
-        <LegendItem color="bg-amber-500/50" label="Locked" />
-        <LegendItem color="bg-red-500/40" label="Booked" />
+        {tiersInUse.map(([tier, price]) => (
+          <LegendItem
+            key={tier}
+            color={tierStyleFor(tier).dot}
+            label={`${tier} · ₹${price}`}
+          />
+        ))}
         <LegendItem color="bg-amber-500/50" ring label="Your Cart" />
+        <LegendItem color="bg-red-500/40" label="Booked" />
       </div>
     </div>
   );
 }
 
 // ─── Individual Seat Button ─────────────────────────────────
-function SeatButton({ seatNumber, status, isSelected, isMine, onClick }) {
+function SeatButton({ seatNumber, status, tier, isInCart, isMine, onClick }) {
   const isAvailable = status === 'available';
   const isLocked = status === 'locked';
   const isBooked = status === 'booked';
-  const canClick = isAvailable;
+  const canClick = isAvailable || (isLocked && isInCart);
 
   let classes =
     'w-[30px] h-[30px] sm:w-[38px] sm:h-[38px] rounded-md text-[8px] sm:text-[10px] font-semibold ' +
-    'transition-all duration-200 border flex items-center justify-center select-none ';
+    'transition-all duration-200 border flex items-center justify-center select-none shrink-0 ';
 
-  if (isAvailable) {
+  if (isInCart && (isAvailable || isLocked)) {
+    // Seat is in THIS user's cart (reserved by them, not yet checked out)
     classes +=
-      'bg-emerald-500/10 border-emerald-500/30 text-emerald-400/80 ' +
-      'hover:bg-emerald-500/25 hover:border-emerald-400/70 hover:text-emerald-300 ' +
-      'hover:scale-110 hover:shadow-[0_0_14px_rgba(16,185,129,0.3)] ' +
-      'cursor-pointer active:scale-95';
+      'bg-amber-500/20 border-amber-400/80 text-amber-300 ' +
+      'ring-[2px] ring-amber-400/50 animate-pulse-glow cursor-pointer hover:scale-105 active:scale-95';
+  } else if (isAvailable) {
+    const style = tierStyleFor(tier);
+    classes += `${style.base} ${style.hover} hover:scale-110 cursor-pointer active:scale-95`;
+  } else if (isBooked || isMine) {
+    classes += isMine
+      ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-500/60 cursor-not-allowed'
+      : 'bg-red-500/10 border-red-500/15 text-red-500/25 cursor-not-allowed';
   } else if (isLocked) {
-    if (isSelected || isMine) {
-      // Seat is in THIS user's cart
-      classes +=
-        'bg-amber-500/20 border-amber-400/80 text-amber-300 ' +
-        'ring-[2px] ring-amber-400/50 animate-pulse-glow cursor-default';
-    } else {
-      // Locked by someone else
-      classes +=
-        'bg-amber-500/10 border-amber-500/20 text-amber-500/40 cursor-not-allowed';
-    }
-  } else if (isBooked) {
-    classes +=
-      'bg-red-500/10 border-red-500/15 text-red-500/25 cursor-not-allowed';
+    // Locked by someone else
+    classes += 'bg-amber-500/10 border-amber-500/20 text-amber-500/40 cursor-not-allowed';
   }
 
   return (
@@ -122,7 +141,7 @@ function SeatButton({ seatNumber, status, isSelected, isMine, onClick }) {
       className={classes}
       onClick={canClick ? onClick : undefined}
       disabled={!canClick}
-      aria-label={`Seat ${seatNumber} — ${status}`}
+      aria-label={`Seat ${seatNumber} — ${status}${tier ? `, ${tier}` : ''}`}
     >
       {seatNumber}
     </button>

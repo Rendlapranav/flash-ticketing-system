@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import { ClerkProvider } from '@clerk/clerk-react';
+import { NotificationProvider } from './context/NotificationContext.jsx';
 import App from './App.jsx';
 import './index.css';
 
@@ -21,7 +23,11 @@ createRoot(document.getElementById('root')).render(
         variables: { colorPrimary: '#8b5cf6' },
       }}
     >
-      <App />
+      <BrowserRouter>
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
+      </BrowserRouter>
     </ClerkProvider>
   </StrictMode>
 );

@@ -1,11 +1,19 @@
-
-
 async function runConcurrencyTest() {
   console.log('🚀 Starting Concurrency Load Test...');
-  console.log('Firing 5 simultaneous requests to lock the same seat (C5)...\n');
 
+  const eventsRes = await fetch('http://localhost:5000/api/events');
+  const events = await eventsRes.json();
+
+  if (!Array.isArray(events) || events.length === 0) {
+    console.error('❌ No events found. Run `npm run seed` in backend/ first.');
+    return;
+  }
+
+  const eventId = events[0]._id;
   const targetSeat = 'C5';
   const url = 'http://localhost:5000/api/seats/lock';
+
+  console.log(`Firing 5 simultaneous requests to lock seat ${targetSeat} on "${events[0].name}"...\n`);
 
   // Create an array of 5 identical lock requests from 5 different dummy users
   const requests = Array.from({ length: 5 }).map((_, index) => {
@@ -13,6 +21,7 @@ async function runConcurrencyTest() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        eventId,
         seatNumber: targetSeat,
         userId: `dummy_user_${index + 1}`
       })
