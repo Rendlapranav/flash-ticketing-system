@@ -108,6 +108,17 @@ async function seed() {
     });
     console.log('MongoDB connected');
 
+    try {
+      await mongoose.connection.db.dropCollection('seats');
+    } catch (e) {
+      // Ignore if collection doesn't exist
+    }
+    try {
+      await mongoose.connection.db.dropCollection('events');
+    } catch (e) {
+      // Ignore if collection doesn't exist
+    }
+
     await Seat.deleteMany({});
     await Event.deleteMany({});
 

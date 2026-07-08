@@ -26,7 +26,15 @@ const { isAdminToken, requireAdmin, requireAuth } = require('./middleware/auth')
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const PORT = process.env.PORT || 5000;
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN
+  ? process.env.CLIENT_ORIGIN.split(',').map((o) => o.trim())
+  : [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174',
+    ];
+
 
 const requiredEnv = ['MONGO_URI', 'REDIS_URL', 'REDIS_TOKEN', 'CLERK_SECRET_KEY'];
 const missingEnv = requiredEnv.filter((key) => !process.env[key]);

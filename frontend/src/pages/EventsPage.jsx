@@ -25,7 +25,10 @@ export default function EventsPage() {
   useEffect(() => {
     fetchEvents()
       .then(setEvents)
-      .catch(() => setEvents([]))
+      .catch((err) => {
+        console.error('Fetch events failed:', err);
+        setEvents([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
